@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>StroyGo Market — Ангрен (бот)</title>
+    <!-- Font Awesome 6 (Free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&display=swap" rel="stylesheet">
+    <style>
+        /* СБРОС И БАЗОВЫЕ НАСТРОЙКИ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafd; color: #0b1e26; line-height: 1.4;
+            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+            padding-bottom: 80px;
+        }
+        .app-container {
+            max-width: 500px; margin: 0 auto; background: #ffffff;
+            box-shadow: 0 0 40px rgba(0,0,0,0.03); min-height: 100vh; position: relative;
+        }
+        .app-header {
+            background: linear-gradient(145deg, #0a2a23, #0e3e33); color: white;
+            padding: 28px 20px 24px; border-bottom-left-radius: 32px; border-bottom-right-radius: 32px;
+            box-shadow: 0 15px 30px -10px rgba(249,115,22,0.25); position: relative; z-index: 10;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            background: #f97316; width: 48px; height: 48px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center; font-size: 28px; color: white;
+            box-shadow: 0 10px 20px #f9731650;
+        }
+        .logo-text { font-weight: 700; font-size: 22px; letter-spacing: -0.3px; }
+        .logo-text span { color: #f97316; }
+        .city-tag { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 40px; font-size: 13px; font-weight: 500; backdrop-filter: blur(5px); }
+        .balance-card {
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border-radius: 28px;
+            padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid rgba(255,255,255,0.2); margin-top: 8px;
+        }
+        .balance-item { display: flex; flex-direction: column; }
+        .balance-label { font-size: 12px; opacity: 0.8; }
+        .balance-value { font-weight: 700; font-size: 20px; }
+        .shop-selector-row {
+            display: flex; gap: 12px; overflow-x: auto; padding: 20px 20px 10px;
+            scrollbar-width: none; white-space: nowrap; -webkit-overflow-scrolling: touch;
+        }
+        .shop-selector-row::-webkit-scrollbar { display: none; }
+        .shop-chip {
+            background: #f1f5f9; padding: 12px 24px; border-radius: 40px; font-weight: 600; font-size: 14px;
+            color: #1e293b; transition: all 0.25s; border: 2px solid transparent; display: inline-flex;
+            align-items: center; gap: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+        }
+        .shop-chip.selected { background: #f97316; color: white; border-color: white; box-shadow: 0 10px 25px #f9731660; }
+        .tabs-container { position: sticky; top: 0; background: white; z-index: 20; padding: 10px 20px 0; border-bottom: 1px solid #eef2f6; }
+        .tabs-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 12px; }
+        .tabs-scroll::-webkit-scrollbar { display: none; }
+        .tab-item {
+            padding: 10px 20px; border-radius: 40px; font-weight: 600; font-size: 14px; background: #f8fafc;
+            color: #64748b; transition: all 0.2s; border: 1px solid #e2e8f0; white-space: nowrap;
+        }
+        .tab-item i { margin-right: 8px; font-size: 14px; }
+        .tab-item.active { background: #0a2a23; color: white; border-color: #0a2a23; box-shadow: 0 5px 15px #0a2a2330; }
+        .tab-content { display: none; padding: 20px; animation: fadeSlide 0.25s ease; }
+        .tab-content.active-content { display: block; }
+        @keyframes fadeSlide { from { opacity: 0.5; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .product-card {
+            background: white; border-radius: 28px; padding: 16px 12px 16px; border: 1px solid #f0f4f9;
+            transition: all 0.25s; box-shadow: 0 10px 20px -8px rgba(0,0,0,0.05);
+        }
+        .product-card:active { transform: scale(0.98); }
+        .product-img { background: #f1f5f9; border-radius: 22px; height: 110px; display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 12px; }
+        .price-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+        .old-price { font-size: 12px; color: #ef4444; text-decoration: line-through; }
+        .new-price { font-size: 20px; font-weight: 800; color: #f97316; }
+        .btn-add {
+            width: 100%; background: #f97316; color: white; border: none; padding: 10px; border-radius: 40px;
+            font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: 0.2s; margin-top: 8px; cursor: pointer;
+        }
+        .btn-add:active { opacity: 0.7; }
+        .btn-accept {
+            width: 100%; background: #10b981; color: white; border: none; padding: 10px; border-radius: 40px;
+            font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: 0.2s; margin-top: 8px; cursor: pointer;
+        }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid #eef2f6;
+            display: flex; justify-content: space-around; padding: 12px 0 20px; z-index: 100;
+            max-width: 500px; margin: 0 auto; right: 0;
+        }
+        .nav-icon {
+            display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px;
+            color: #64748b; transition: 0.2s; background: transparent; border: none; padding: 4px 12px;
+            border-radius: 30px; cursor: pointer;
+        }
+        .nav-icon i { font-size: 22px; }
+        .nav-icon.active { color: #f97316; font-weight: 600; background: #fff7ed; }
+        .cart-fab {
+            position: fixed; bottom: 90px; right: 20px; background: #f97316; width: 56px; height: 56px;
+            border-radius: 30px; display: flex; align-items: center; justify-content: center; color: white;
+            font-size: 22px; box-shadow: 0 15px 30px #f97316; border: 3px solid white; z-index: 99; cursor: pointer;
+        }
+        .cart-count-badge {
+            position: absolute; top: -5px; right: -5px; background: #0a2a23; color: white; font-size: 12px;
+            padding: 4px 8px; border-radius: 30px; min-width: 24px; text-align: center; border: 2px solid white;
+        }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); align-items: flex-end; justify-content: center;
+            z-index: 200;
+        }
+        .modal-sheet {
+            background: white; width: 100%; max-width: 500px; border-top-left-radius: 40px;
+            border-top-right-radius: 40px; padding: 30px 20px; animation: slideUp 0.3s;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @media (max-width: 400px) { .product-grid { gap: 10px; } }
+        /* Стили для форм */
+        .order-form input, .order-form textarea {
+            width: 100%; padding: 14px 18px; margin-bottom: 12px; border: none;
+            background: #1e293b; border-radius: 30px; font-size: 15px; color: white;
+            font-family: 'Inter', sans-serif;
+        }
+        .order-form input::placeholder, .order-form textarea::placeholder { color: #94a3b8; }
+        .order-form textarea { min-height: 80px; resize: vertical; }
+        .quick-contact {
+            position: fixed; bottom: 160px; right: 20px; z-index: 98;
+        }
+        .contact-btn {
+            background: #25D366; width: 50px; height: 50px; border-radius: 25px;
+            display: flex; align-items: center; justify-content: center; color: white;
+            font-size: 24px; box-shadow: 0 10px 20px rgba(37, 211, 102, 0.4);
+            border: 2px solid white; margin-bottom: 10px; cursor: pointer;
+        }
+        .contact-btn.telegram {
+            background: #0088cc; box-shadow: 0 10px 20px rgba(0, 136, 204, 0.4);
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ШАПКА -->
+    <div class="app-header">
+        <div class="header-top">
+            <div class="logo-area">
+                <div class="logo-icon"><i class="fas fa-trowel"></i></div>
+                <div class="logo-text">Stroy<span>Go</span></div>
+            </div>
+            <div class="city-tag"><i class="fas fa-map-pin"></i> Ангрен</div>
+        </div>
+        <div class="balance-card">
+            <div class="balance-item"><span class="balance-label">Мои бонусы</span><span class="balance-value">12 500 <span style="font-size: 14px;">сум</span></span></div>
+            <div class="balance-item"><span class="balance-label">Заказов</span><span class="balance-value">9</span></div>
+            <i class="fas fa-chevron-right" style="opacity: 0.8;"></i>
+        </div>
+    </div>
+
+    <!-- МАГАЗИНЫ -->
+    <div class="shop-selector-row" id="shopSelector">
+        <div class="shop-chip selected" data-shop="center"><i class="fas fa-store"></i> Центр</div>
+        <div class="shop-chip" data-shop="gres"><i class="fas fa-industry"></i> ГРЭС</div>
+        <div class="shop-chip" data-shop="bazar"><i class="fas fa-shopping-bag"></i> Янги базар</div>
+        <div class="shop-chip" data-shop="yangish"><i class="fas fa-home"></i> Янги шахар</div>
+        <div class="shop-chip" data-shop="market"><i class="fas fa-tools"></i> Стройрынок</div>
+    </div>
+
+    <!-- ВКЛАДКИ -->
+    <div class="tabs-container">
+        <div class="tabs-scroll" id="mainTabs">
+            <button class="tab-item active" data-tab="tab1"><i class="fas fa-fire"></i> Популярное</button>
+            <button class="tab-item" data-tab="tab2"><i class="fas fa-tag"></i> Скидки</button>
+            <button class="tab-item" data-tab="tab3"><i class="fas fa-cubes"></i> Все товары</button>
+            <button class="tab-item" data-tab="tab4"><i class="fas fa-truck"></i> Доставка</button>
+            <button class="tab-item" data-tab="tab5"><i class="fas fa-percent"></i> Акции</button>
+            <button class="tab-item" data-tab="tab6"><i class="fas fa-store-alt"></i> Магазины</button>
+        </div>
+    </div>
+
+    <!-- КОНТЕНТ ВКЛАДОК (расширенный каталог) -->
+    <div id="tab1" class="tab-content active-content">
+        <div class="product-grid">
+            <div class="product-card" data-id="1" data-name="Цемент М400 50кг" data-price="72000" data-unit="мешок">
+                <div class="product-img">🏭</div><h3 style="font-size: 16px;">Цемент М400</h3>
+                <div style="font-size:12px; color:#f97316;"><i class="fas fa-store"></i> Центр, ГРЭС</div>
+                <div class="price-row"><span class="old-price">95 000</span><span class="new-price">72 000</span></div>
+                <button class="btn-add" onclick="addToCart(1)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+            <div class="product-card" data-id="2" data-name="Кирпич керамический" data-price="1850" data-unit="шт">
+                <div class="product-img">🧱</div><h3>Кирпич</h3>
+                <div style="font-size:12px;"><i class="fas fa-store"></i> Все магазины</div>
+                <div class="price-row"><span class="old-price">2 800</span><span class="new-price">1 850</span></div>
+                <button class="btn-add" onclick="addToCart(2)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+            <div class="product-card" data-id="3" data-name="Песок 1т" data-price="120000" data-unit="т">
+                <div class="product-img">⛱️</div><h3>Песок</h3>
+                <div style="font-size:12px;"><i class="fas fa-truck"></i> Доставка</div>
+                <div class="price-row"><span class="old-price">170 000</span><span class="new-price">120 000</span></div>
+                <button class="btn-add" onclick="addToCart(3)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+            <div class="product-card" data-id="4" data-name="Гипсокартон" data-price="89000" data-unit="лист">
+                <div class="product-img">📋</div><h3>Гипсокартон</h3><div style="font-size:12px;">Центр</div>
+                <div class="price-row"><span class="old-price">125 000</span><span class="new-price">89 000</span></div>
+                <button class="btn-add" onclick="addToCart(4)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tab2" class="tab-content">
+        <h3>🔥 Скидки до 40%</h3>
+        <div class="product-grid">
+            <div class="product-card" data-id="5" data-name="Краска фасадная" data-price="45000" data-unit="л">
+                <div class="product-img">🎨</div><h3>Краска фасадная</h3>
+                <div style="font-size:12px;">Центр, Янги базар</div>
+                <div class="price-row"><span class="old-price">75 000</span><span class="new-price">45 000</span></div>
+                <button class="btn-add" onclick="addToCart(5)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+            <div class="product-card" data-id="6" data-name="Плитка 30х30" data-price="32000" data-unit="м²">
+                <div class="product-img">🔲</div><h3>Плитка 30х30</h3>
+                <div style="font-size:12px;">Все магазины</div>
+                <div class="price-row"><span class="old-price">55 000</span><span class="new-price">32 000</span></div>
+                <button class="btn-add" onclick="addToCart(6)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tab3" class="tab-content">
+        <p>📦 Более 200 товаров</p>
+        <div class="product-grid">
+            <div class="product-card" data-id="7" data-name="Арматура 12мм" data-price="85000" data-unit="прут">
+                <div class="product-img">⛓️</div><h3>Арматура 12мм</h3>
+                <div class="price-row"><span class="new-price">85 000</span></div>
+                <button class="btn-add" onclick="addToCart(7)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+            <div class="product-card" data-id="8" data-name="Доска обрезная" data-price="120000" data-unit="м³">
+                <div class="product-img">🪵</div><h3>Доска обрезная</h3>
+                <div class="price-row"><span class="new-price">120 000</span></div>
+                <button class="btn-add" onclick="addToCart(8)"><i class="fas fa-cart-plus"></i> Добавить</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tab4" class="tab-content">
+        <div style="background:#f1f5f9; border-radius:30px; padding:25px;">
+            <h3>🚚 Доставка по Ангрену</h3>
+            <p>• Бесплатно от 1 000 000 сум</p>
+            <p>• Доставка за 24 часа</p>
+            <p>• Самовывоз из любого магазина</p>
+        </div>
+    </div>
+    
+    <div id="tab5" class="tab-content">
+        <div class="balance-card" style="background:#0a2a23; color:white;">
+            <span>🔥 При первом заказе скидка 10%</span>
+        </div>
+    </div>
+    
+    <div id="tab6" class="tab-content">
+        <h3>Наши магазины в Ангрене</h3>
+        <p>🏪 Центр (Навои) - ул. Навои, 15</p>
+        <p>🏭 ГРЭС - микрорайон ГРЭС, 22</p>
+        <p>🛒 Янги базар - рынок Янги базар</p>
+    </div>
+
+    <!-- КНОПКИ БЫСТРОЙ СВЯЗИ -->
+    <div class="quick-contact">
+        <div class="contact-btn telegram" onclick="window.open('https://t.me/stroygooadmin', '_blank')">
+            <i class="fab fa-telegram"></i>
+        </div>
+        <div class="contact-btn" onclick="window.open('https://wa.me/998901234567', '_blank')">
+            <i class="fab fa-whatsapp"></i>
+        </div>
+    </div>
+
+    <!-- КОРЗИНА -->
+    <div class="cart-fab" onclick="toggleCart()">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-count-badge" id="cartCounter">0</span>
+    </div>
+
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <div class="bottom-nav">
+        <button class="nav-icon" onclick="switchTab('tab1')"><i class="fas fa-fire"></i><span>Хиты</span></button>
+        <button class="nav-icon" onclick="switchTab('tab2')"><i class="fas fa-tag"></i><span>Скидки</span></button>
+        <button class="nav-icon" onclick="switchTab('tab3')"><i class="fas fa-cubes"></i><span>Каталог</span></button>
+        <button class="nav-icon" onclick="switchTab('tab4')"><i class="fas fa-truck"></i><span>Доставка</span></button>
+        <button class="nav-icon" onclick="switchTab('tab5')"><i class="fas fa-gift"></i><span>Акции</span></button>
+    </div>
+</div>
+
+<!-- МОДАЛКА КОРЗИНЫ -->
+<div id="cartModal" class="modal-overlay">
+    <div class="modal-sheet" style="background: #0f172a; color:white;">
+        <div style="display:flex; justify-content:space-between;">
+            <h3>🛒 Корзина</h3>
+            <i class="fas fa-times" onclick="closeCartModal()" style="font-size:24px; cursor:pointer;"></i>
+        </div>
+        <div id="cartItemsList" style="margin:20px 0;"></div>
+        <div style="display:flex; justify-content:space-between; font-weight:bold; color:#f97316;">
+            <span>Итого:</span>
+            <span id="cartTotal">0 сум</span>
+        </div>
+        <button class="btn-add" style="margin-top:20px;" onclick="openOrderForm()">
+            <i class="fab fa-telegram"></i> Заказ в Telegram
+        </button>
+        <p style="color:#94a3b8; font-size:12px; margin-top:10px;">@StroyGObot</p>
+    </div>
+</div>
+
+<!-- МОДАЛКА ФОРМЫ ЗАКАЗА -->
+<div id="orderFormModal" class="modal-overlay">
+    <div class="modal-sheet" style="background: #0f172a; color:white;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h3>📋 Детали заказа</h3>
+            <i class="fas fa-times" onclick="closeOrderFormModal()" style="font-size:24px; cursor:pointer;"></i>
+        </div>
+        <div class="order-form">
+            <input type="text" id="customerName" placeholder="Ваше имя" value="Покупатель">
+            <input type="tel" id="customerPhone" placeholder="Телефон" value="+998">
+            <input type="text" id="customerAddress" placeholder="Адрес доставки (ориентир)">
+            <textarea id="customerComment" placeholder="Комментарий к заказу (необязательно)"></textarea>
+            <button class="btn-add" onclick="sendOrderToTelegram()" style="margin-top:10px;">
+                <i class="fab fa-telegram"></i> 📦 Подтвердить заказ
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА ПОДТВЕРЖДЕНИЯ ЗАКАЗА -->
+<div id="acceptOrderModal" class="modal-overlay">
+    <div class="modal-sheet" style="background: #0f172a; color:white; text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 20px;">✅</div>
+        <h2 style="margin-bottom: 15px;">Заказ подтверждён!</h2>
+        <p style="color: #94a3b8; margin-bottom: 25px;">Спасибо за заказ! Мы скоро свяжемся с вами для уточнения деталей.</p>
+        <button class="btn-accept" onclick="closeAcceptModal()">
+            <i class="fas fa-check"></i> Отлично
+        </button>
+    </div>
+</div>
+
+<script>
+    // ==================== НАСТРОЙКИ ПОДКЛЮЧЕНИЯ К БОТУ ====================
+    const TELEGRAM_BOT_TOKEN = '8300136158:AAEpkQ26v0UwXkJt_RVTM_0ND3tsGPrS1dY';   // ТОКЕН БОТА
+    const TELEGRAM_GROUP_ID = '1144365466';                                        // ID ГРУППЫ
+    const TELEGRAM_BOT_CHAT_ID = '@StroyGObot';                                    // ЮЗЕРНЕЙМ БОТА
+    // ========================================================================
+
+    // Данные магазинов
+    const shopNames = { 'center': 'Центр (Навои)', 'gres': 'ГРЭС', 'bazar': 'Янги базар', 'yangish': 'Янги шахар', 'market': 'Стройрынок' };
+    let selectedShop = 'center';
+    let cart = [];
+
+    // Переключение вкладок
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-content'));
+        document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active-content');
+        const activeTabBtn = document.querySelector(`.tab-item[data-tab="${tabId}"]`);
+        if (activeTabBtn) activeTabBtn.classList.add('active');
+        const navIndex = {'tab1':0,'tab2':1,'tab3':2,'tab4':3,'tab5':4};
+        document.querySelectorAll('.nav-icon').forEach((btn, idx) => {
+            if (idx === navIndex[tabId]) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+    document.querySelectorAll('.tab-item').forEach(btn => btn.addEventListener('click', function() { switchTab(this.dataset.tab); }));
+
+    // Выбор магазина
+    document.querySelectorAll('.shop-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            document.querySelectorAll('.shop-chip').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedShop = this.dataset.shop;
+        });
+    });
+
+    // Корзина: добавление
+    function addToCart(productId) {
+        const card = document.querySelector(`.product-card[data-id="${productId}"]`);
+        const name = card.dataset.name || 'Товар';
+        const price = parseInt(card.dataset.price) || 0;
+        const unit = card.dataset.unit || 'шт';
+        const existing = cart.find(item => item.id === productId);
+        if (existing) existing.quantity++;
+        else cart.push({ id: productId, name, price, quantity:1, unit });
+        updateCartUI();
+        const btn = card.querySelector('.btn-add');
+        btn.style.background = '#10b981';
+        btn.innerHTML = '<i class="fas fa-check"></i> Готово';
+        setTimeout(() => { btn.style.background = '#f97316'; btn.innerHTML = '<i class="fas fa-cart-plus"></i> Добавить'; }, 600);
+    }
+    function removeFromCart(productId) { cart = cart.filter(item => item.id !== productId); updateCartUI(); }
+    function updateCartUI() {
+        const totalItems = cart.reduce((acc, i) => acc + i.quantity, 0);
+        document.getElementById('cartCounter').innerText = totalItems;
+        const list = document.getElementById('cartItemsList');
+        const totalSpan = document.getElementById('cartTotal');
+        let html = '', total = 0;
+        if (cart.length === 0) html = '<p style="color:#94a3b8;">Корзина пуста</p>';
+        else {
+            cart.forEach(item => {
+                total += item.price * item.quantity;
+                html += `<div style="display:flex; justify-content:space-between; background:#1e293b; padding:8px 15px; border-radius:40px; margin-bottom:8px;">
+                    <span>${item.name} x${item.quantity}</span>
+                    <span>${(item.price*item.quantity).toLocaleString()} сум <i class="fas fa-trash" style="color:#f97316; margin-left:8px;" onclick="removeFromCart(${item.id})"></i></span>
+                </div>`;
+            });
+        }
+        list.innerHTML = html;
+        totalSpan.innerText = total.toLocaleString() + ' сум';
+    }
+
+    // Управление модалками
+    function toggleCart() { 
+        if (cart.length === 0) { alert('Корзина пуста'); return; }
+        document.getElementById('cartModal').style.display = 'flex'; 
+        updateCartUI(); 
+    }
+    function closeCartModal() { document.getElementById('cartModal').style.display = 'none'; }
+    function openOrderForm() {
+        closeCartModal();
+        document.getElementById('orderFormModal').style.display = 'flex';
+    }
+    function closeOrderFormModal() { document.getElementById('orderFormModal').style.display = 'none'; }
+    function showAcceptModal() {
+        document.getElementById('acceptOrderModal').style.display = 'flex';
+    }
+    function closeAcceptModal() {
+        document.getElementById('acceptOrderModal').style.display = 'none';
+    }
+
+    // Закрытие по клику на оверлей
+    document.getElementById('cartModal').addEventListener('click', function(e) { if (e.target === this) closeCartModal(); });
+    document.getElementById('orderFormModal').addEventListener('click', function(e) { if (e.target === this) closeOrderFormModal(); });
+    document.getElementById('acceptOrderModal').addEventListener('click', function(e) { if (e.target === this) closeAcceptModal(); });
+
+    // ========== ОТПРАВКА ЗАКАЗА В TELEGRAM ==========
+    function sendOrderToTelegram() {
+        if (cart.length === 0) { alert('Корзина пуста'); return; }
+
+        // Собираем данные из формы
+        const name = document.getElementById('customerName').value.trim() || 'Покупатель';
+        const phone = document.getElementById('customerPhone').value.trim() || 'не указан';
+        const address = document.getElementById('customerAddress').value.trim() || 'не указан';
+        const comment = document.getElementById('customerComment').value.trim() || '—';
+
+        // Формируем список товаров
+        const itemsList = cart.map(i => `• ${i.name} — ${i.quantity} ${i.unit} × ${i.price.toLocaleString()} сум = ${(i.price*i.quantity).toLocaleString()} сум`).join('\n');
+        const total = cart.reduce((s,i) => s + i.price*i.quantity, 0).toLocaleString();
+
+        const message = `
+🔔 НОВЫЙ ЗАКАЗ StroyGo (Ангрен)
+🏪 Магазин: ${shopNames[selectedShop]}
+👤 Имя: ${name}
+📞 Телефон: ${phone}
+📍 Адрес: ${address}
+📝 Комментарий: ${comment}
+—————————————
+${itemsList}
+—————————————
+💰 ИТОГО: ${total} сум
+⏱️ ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Tashkent' })}
+        `.trim();
+
+        // Функция отправки в группу
+        async function sendToGroup() {
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            const payload = {
+                chat_id: TELEGRAM_GROUP_ID,
+                text: message,
+                parse_mode: 'HTML'
+            };
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                return result.ok;
+            } catch (e) {
+                console.error('Ошибка:', e);
+                return false;
+            }
+        }
+
+        // Показываем уведомление об отправке
+        alert('⏳ Отправка заказа...');
+
+        // Отправляем в группу
+        sendToGroup().then(success => {
+            if (success) {
+                closeOrderFormModal();
+                showAcceptModal();
+                cart = [];
+                updateCartUI();
+            } else {
+                alert('❌ Ошибка при отправке. Пожалуйста, попробуйте позже.');
+            }
+        });
+    }
+
+    // Инициализация
+    window.onload = function() { updateCartUI(); };
+</script>
+
+</body>
+</html>
